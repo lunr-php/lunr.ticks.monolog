@@ -1,6 +1,6 @@
 # Lunr.Ticks.Monolog
 
-Lunr.Ticks.Monolog is a Monolog LogHandler that processes logs as analytics event.
+Lunr.Ticks.Monolog is a Monolog ProcessingHandler that processes logs as analytics event.
 
 Installation
 ------------

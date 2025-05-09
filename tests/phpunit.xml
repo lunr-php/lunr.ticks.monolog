@@ -15,6 +15,9 @@
          displayDetailsOnTestsThatTriggerWarnings="true"
          displayDetailsOnPhpunitDeprecations="true">
     <testsuites>
+        <testsuite name="Monolog">
+            <directory>../src/Lunr/Ticks/Monolog/Tests/</directory>
+        </testsuite>
     </testsuites>
     <coverage>
         <report>
@@ -30,6 +33,7 @@
             <directory>../src/Lunr/</directory>
         </include>
         <exclude>
+            <directory>../src/Lunr/Ticks/Monolog/Tests/</directory>
         </exclude>
     </source>
 </phpunit>
