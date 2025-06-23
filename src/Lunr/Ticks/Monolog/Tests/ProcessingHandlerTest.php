@@ -18,6 +18,7 @@ use Lunr\Ticks\TracingInfoInterface;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Level;
 use Monolog\Test\MonologTestCase;
+use RuntimeException;
 use stdClass;
 
 /**
@@ -27,6 +28,200 @@ use stdClass;
  */
 class ProcessingHandlerTest extends MonologTestCase
 {
+
+    /**
+     * Tests the processing handler implementation.
+     *
+     * @covers \Lunr\Ticks\Monolog\ProcessingHandler::handle
+     */
+    public function testHandleWithTraceIDUnavailable(): void
+    {
+        $record = $this->getRecord(Level::Warning, 'test', [ 'data' => new stdClass(), 'foo' => 34 ]);
+
+        $event = $this->createMock(EventInterface::class);
+
+        $event->expects($this->once())
+              ->method('setTimestamp')
+              ->with($record->datetime->format('Uu'));
+
+        $event->expects($this->never())
+              ->method('addTags');
+
+        $event->expects($this->never())
+              ->method('addFields');
+
+        $event->expects($this->never())
+              ->method('setTraceId');
+
+        $event->expects($this->never())
+              ->method('setSpanId');
+
+        $event->expects($this->never())
+              ->method('setParentSpanId');
+
+        $eventLogger = $this->createMock(EventLoggerInterface::class);
+
+        $eventLogger->expects($this->once())
+                    ->method('newEvent')
+                    ->willReturn($event);
+
+        $controller = $this->createMockForIntersectionOfInterfaces([
+            TracingControllerInterface::class,
+            TracingInfoInterface::class,
+        ]);
+
+        $controller->expects($this->once())
+                   ->method('getTraceId')
+                   ->willReturn(NULL);
+
+        $controller->expects($this->never())
+                   ->method('getSpanId');
+
+        $controller->expects($this->never())
+                   ->method('getParentSpanId');
+
+        $controller->expects($this->never())
+                   ->method('getSpanSpecificTags');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Trace ID not available!');
+
+        $handler = new ProcessingHandler($eventLogger, $controller);
+        $handler->handle($record);
+    }
+
+    /**
+     * Tests the processing handler implementation.
+     *
+     * @covers \Lunr\Ticks\Monolog\ProcessingHandler::handle
+     */
+    public function testHandleWithSpanIDUnavailable(): void
+    {
+        $traceID = '7b333e15-aa78-4957-a402-731aecbb358e';
+
+        $record = $this->getRecord(Level::Warning, 'test', [ 'data' => new stdClass(), 'foo' => 34 ]);
+
+        $event = $this->createMock(EventInterface::class);
+
+        $event->expects($this->once())
+              ->method('setTimestamp')
+              ->with($record->datetime->format('Uu'));
+
+        $event->expects($this->never())
+              ->method('addTags');
+
+        $event->expects($this->never())
+              ->method('addFields');
+
+        $event->expects($this->once())
+              ->method('setTraceId')
+              ->with($traceID);
+
+        $event->expects($this->never())
+              ->method('setSpanId');
+
+        $event->expects($this->never())
+              ->method('setParentSpanId');
+
+        $eventLogger = $this->createMock(EventLoggerInterface::class);
+
+        $eventLogger->expects($this->once())
+                    ->method('newEvent')
+                    ->willReturn($event);
+
+        $controller = $this->createMockForIntersectionOfInterfaces([
+            TracingControllerInterface::class,
+            TracingInfoInterface::class,
+        ]);
+
+        $controller->expects($this->once())
+                   ->method('getTraceId')
+                   ->willReturn($traceID);
+
+        $controller->expects($this->once())
+                   ->method('getSpanId')
+                   ->willReturn(NULL);
+
+        $controller->expects($this->never())
+                   ->method('getParentSpanId');
+
+        $controller->expects($this->never())
+                   ->method('getSpanSpecificTags');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Span ID not available!');
+
+        $handler = new ProcessingHandler($eventLogger, $controller);
+        $handler->handle($record);
+    }
+
+    /**
+     * Tests the processing handler implementation.
+     *
+     * @covers \Lunr\Ticks\Monolog\ProcessingHandler::handle
+     */
+    public function testHandleWithParentSpanIDUnavailable(): void
+    {
+        $traceID = '7b333e15-aa78-4957-a402-731aecbb358e';
+        $spanID  = '24ec5f90-7458-4dd5-bb51-7a1e8f4baafe';
+
+        $record = $this->getRecord(Level::Warning, 'test', [ 'data' => new stdClass(), 'foo' => 34 ]);
+
+        $event = $this->createMock(EventInterface::class);
+
+        $event->expects($this->once())
+              ->method('setTimestamp')
+              ->with($record->datetime->format('Uu'));
+
+        $event->expects($this->never())
+              ->method('addTags');
+
+        $event->expects($this->never())
+              ->method('addFields');
+
+        $event->expects($this->once())
+              ->method('setTraceId')
+              ->with($traceID);
+
+        $event->expects($this->once())
+              ->method('setSpanId')
+              ->with($spanID);
+
+        $event->expects($this->never())
+              ->method('setParentSpanId');
+
+        $eventLogger = $this->createMock(EventLoggerInterface::class);
+
+        $eventLogger->expects($this->once())
+                    ->method('newEvent')
+                    ->willReturn($event);
+
+        $controller = $this->createMockForIntersectionOfInterfaces([
+            TracingControllerInterface::class,
+            TracingInfoInterface::class,
+        ]);
+
+        $controller->expects($this->once())
+                   ->method('getTraceId')
+                   ->willReturn($traceID);
+
+        $controller->expects($this->once())
+                   ->method('getSpanId')
+                   ->willReturn($spanID);
+
+        $controller->expects($this->once())
+                   ->method('getParentSpanId')
+                   ->willReturn(NULL);
+
+        $controller->expects($this->never())
+                   ->method('getSpanSpecificTags');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Span ID not available!');
+
+        $handler = new ProcessingHandler($eventLogger, $controller);
+        $handler->handle($record);
+    }
 
     /**
      * Tests the processing handler implementation.
@@ -61,13 +256,22 @@ class ProcessingHandlerTest extends MonologTestCase
         $event->expects($this->once())
               ->method('addFields')
               ->with([
-                  'message'      => (new LineFormatter())->format($record),
-                  'level'        => $record->level->value,
-                  'line'         => NULL,
-                  'traceID'      => $traceID,
-                  'spanID'       => $spanID,
-                  'parentSpanID' => $parentSpanID,
+                  'message' => (new LineFormatter())->format($record),
+                  'level'   => $record->level->value,
+                  'line'    => NULL,
               ]);
+
+        $event->expects($this->once())
+              ->method('setTraceId')
+              ->with($traceID);
+
+        $event->expects($this->once())
+              ->method('setSpanId')
+              ->with($spanID);
+
+        $event->expects($this->once())
+              ->method('setParentSpanId')
+              ->with($parentSpanID);
 
         $eventLogger = $this->createMock(EventLoggerInterface::class);
 
@@ -140,13 +344,22 @@ class ProcessingHandlerTest extends MonologTestCase
         $event->expects($this->once())
               ->method('addFields')
               ->with([
-                  'message'      => (new LineFormatter())->format($record),
-                  'level'        => $record->level->value,
-                  'line'         => 101,
-                  'traceID'      => $traceID,
-                  'spanID'       => $spanID,
-                  'parentSpanID' => $parentSpanID,
+                  'message' => (new LineFormatter())->format($record),
+                  'level'   => $record->level->value,
+                  'line'    => 101,
               ]);
+
+        $event->expects($this->once())
+              ->method('setTraceId')
+              ->with($traceID);
+
+        $event->expects($this->once())
+              ->method('setSpanId')
+              ->with($spanID);
+
+        $event->expects($this->once())
+              ->method('setParentSpanId')
+              ->with($parentSpanID);
 
         $eventLogger = $this->createMock(EventLoggerInterface::class);
 
@@ -221,14 +434,23 @@ class ProcessingHandlerTest extends MonologTestCase
         $event->expects($this->once())
               ->method('addFields')
               ->with([
-                  'message'      => (new LineFormatter())->format($record),
-                  'level'        => $record->level->value,
-                  'line'         => NULL,
-                  'traceID'      => $traceID,
-                  'spanID'       => $spanID,
-                  'parentSpanID' => $parentSpanID,
-                  'stacktrace'   => $exception->getTraceAsString(),
+                  'message'    => (new LineFormatter())->format($record),
+                  'level'      => $record->level->value,
+                  'line'       => NULL,
+                  'stacktrace' => $exception->getTraceAsString(),
               ]);
+
+        $event->expects($this->once())
+              ->method('setTraceId')
+              ->with($traceID);
+
+        $event->expects($this->once())
+              ->method('setSpanId')
+              ->with($spanID);
+
+        $event->expects($this->once())
+              ->method('setParentSpanId')
+              ->with($parentSpanID);
 
         $eventLogger = $this->createMock(EventLoggerInterface::class);
 
@@ -299,14 +521,23 @@ class ProcessingHandlerTest extends MonologTestCase
         $event->expects($this->once())
               ->method('addFields')
               ->with([
-                  'message'      => (new LineFormatter())->format($record),
-                  'level'        => $record->level->value,
-                  'line'         => NULL,
-                  'traceID'      => $traceID,
-                  'spanID'       => $spanID,
-                  'parentSpanID' => $parentSpanID,
-                  'meta'         => 'bar',
+                  'message' => (new LineFormatter())->format($record),
+                  'level'   => $record->level->value,
+                  'line'    => NULL,
+                  'meta'    => 'bar',
               ]);
+
+        $event->expects($this->once())
+              ->method('setTraceId')
+              ->with($traceID);
+
+        $event->expects($this->once())
+              ->method('setSpanId')
+              ->with($spanID);
+
+        $event->expects($this->once())
+              ->method('setParentSpanId')
+              ->with($parentSpanID);
 
         $eventLogger = $this->createMock(EventLoggerInterface::class);
 

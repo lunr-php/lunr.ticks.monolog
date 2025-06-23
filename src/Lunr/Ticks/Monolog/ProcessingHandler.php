@@ -17,6 +17,7 @@ use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\Level;
 use Monolog\LogRecord;
 use Psr\Log\LogLevel;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -71,12 +72,9 @@ class ProcessingHandler extends AbstractProcessingHandler
     protected function write(LogRecord $record): void
     {
         $fields = [
-            'message'      => is_string($record->formatted) ? $record->formatted : NULL,
-            'level'        => $record->level->value,
-            'line'         => is_string($record->extra['line'] ?? NULL) ? $record->extra['line'] : NULL,
-            'traceID'      => $this->tracingController->getTraceId(),
-            'spanID'       => $this->tracingController->getSpanId(),
-            'parentSpanID' => $this->tracingController->getParentSpanId(),
+            'message' => is_string($record->formatted) ? $record->formatted : NULL,
+            'level'   => $record->level->value,
+            'line'    => is_string($record->extra['line'] ?? NULL) ? $record->extra['line'] : NULL,
         ];
 
         $tags = [
@@ -111,6 +109,9 @@ class ProcessingHandler extends AbstractProcessingHandler
         $event = $this->eventLogger->newEvent('php_log');
 
         $event->setTimestamp($record->datetime->format('Uu'));
+        $event->setTraceId($this->tracingController->getTraceId() ?? throw new RuntimeException('Trace ID not available!'));
+        $event->setSpanId($this->tracingController->getSpanId() ?? throw new RuntimeException('Span ID not available!'));
+        $event->setParentSpanId($this->tracingController->getParentSpanId() ?? throw new RuntimeException('Parent Span ID not available!'));
         $event->addTags(array_merge($this->tracingController->getSpanSpecificTags(), $tags));
         $event->addFields($fields);
         $event->record(Precision::MicroSeconds);
