@@ -173,12 +173,24 @@ class ProcessingHandlerTest extends MonologTestCase
               ->method('setTimestamp')
               ->with($record->datetime->format('Uu'));
 
-        $event->expects($this->never())
-              ->method('addTags');
+        $event->expects($this->once())
+              ->method('addTags')
+              ->with([
+                  'call'      => 'controller/method',
+                  'levelName' => $record->level->getName(),
+                  'channel'   => $record->channel,
+                  'file'      => NULL,
+                  'class'     => NULL,
+                  'function'  => NULL,
+              ]);
 
-        $event->expects($this->never())
-              ->method('addFields');
-
+        $event->expects($this->once())
+              ->method('addFields')
+              ->with([
+                  'message' => (new LineFormatter())->format($record),
+                  'level'   => $record->level->value,
+                  'line'    => NULL,
+              ]);
         $event->expects($this->once())
               ->method('setTraceId')
               ->with($traceID);
@@ -213,11 +225,9 @@ class ProcessingHandlerTest extends MonologTestCase
                    ->method('getParentSpanId')
                    ->willReturn(NULL);
 
-        $controller->expects($this->never())
-                   ->method('getSpanSpecificTags');
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Span ID not available!');
+        $controller->expects($this->once())
+                   ->method('getSpanSpecificTags')
+                   ->willReturn([ 'call' => 'controller/method' ]);
 
         $handler = new ProcessingHandler($eventLogger, $controller);
         $handler->handle($record);

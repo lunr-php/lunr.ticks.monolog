@@ -111,7 +111,14 @@ class ProcessingHandler extends AbstractProcessingHandler
         $event->setTimestamp($record->datetime->format('Uu'));
         $event->setTraceId($this->tracingController->getTraceId() ?? throw new RuntimeException('Trace ID not available!'));
         $event->setSpanId($this->tracingController->getSpanId() ?? throw new RuntimeException('Span ID not available!'));
-        $event->setParentSpanId($this->tracingController->getParentSpanId() ?? throw new RuntimeException('Parent Span ID not available!'));
+
+        $parentSpanID = $this->tracingController->getParentSpanId();
+
+        if ($parentSpanID != NULL)
+        {
+            $event->setParentSpanId($parentSpanID);
+        }
+
         $event->addTags(array_merge($this->tracingController->getSpanSpecificTags(), $tags));
         $event->addFields($fields);
         $event->record(Precision::MicroSeconds);
